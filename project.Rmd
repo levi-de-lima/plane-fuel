@@ -1,0 +1,106 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+# setwd("C:/Users/levid/OneDrive/Desktop/GitHub/plane-fuel")
+
+# Pacotes úteis
+library(tidyverse)
+library(lubridate)
+# library(GGally)
+# library(caret)
+# library(randomForest)
+# library(xgboost)
+# library(vip)
+
+# Defina o seed para reprodutibilidade
+set.seed(123)
+
+# Carregar bases
+load("data_project_train.Rda")
+load("data_project_test.Rda")
+```
+
+```{r}
+# Conferir estrutura
+summary(data_train)
+```
+
+## Feature Engineering
+
+```{r}
+df_train <- data_train %>%
+  mutate(
+    avg_speed = flown_distance_enr / (flight_duration / 60),        # NM/h
+    fuel_per_nm = fuel_burn / flown_distance_enr,
+    fuel_per_min = fuel_burn / flight_duration,
+    total_ineff = kpi_inefficiency_dep + kpi_inefficiency_arr,
+    flight_range = case_when(
+      flown_distance_enr < 400 ~ "Curto",
+      flown_distance_enr < 800 ~ "Médio",
+      TRUE ~ "Longo"
+    ),
+    dep_hour = hour(dep_time),
+    dep_period = case_when(
+      dep_hour >= 5 & dep_hour < 12 ~ "Manhã",
+      dep_hour >= 12 & dep_hour < 18 ~ "Tarde",
+      TRUE ~ "Noite"
+    )
+  )
+```
+
+```{r}
+# Aplicar o mesmo processo à base de teste (sem fuel_burn)
+df_test <- df_test %>%
+  mutate(
+    avg_speed = flown_distance_enr / (flight_duration / 60),
+    total_ineff = kpi_inefficiency_dep + kpi_inefficiency_arr,
+    flight_range = case_when(
+      flown_distance_enr < 400 ~ "Curto",
+      flown_distance_enr < 800 ~ "Médio",
+      TRUE ~ "Longo"
+    ),
+    dep_hour = hour(dep_time),
+    dep_period = case_when(
+      dep_hour >= 5 & dep_hour < 12 ~ "Manhã",
+      dep_hour >= 12 & dep_hour < 18 ~ "Tarde",
+      TRUE ~ "Noite"
+    )
+  )
+```
+
+## Análise Exploratória dos Dados
+
+```{r}
+# Distribuição do consumo
+ggplot(data_train, aes(x = fuel_burn)) + 
+  geom_histogram(bins = 40, fill = "steelblue", color = "white") +
+  theme_minimal() +
+  labs(title = "Distribuição do Consumo de Combustível (kg)")
+```
+
+```{r}
+# Relação distância x consumo
+ggplot(data_train, aes(x = flown_distance_enr, y = fuel_burn, color = aircraft_type)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  theme_minimal() +
+  labs(title = "Relação entre distância voada e consumo")
+```
+
+```{r}
+# Boxplot por tipo de aeronave
+ggplot(data_train, aes(x = aircraft_type, y = fuel_burn)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Consumo de combustível por tipo de aeronave")
+```
+
+```{r}
+# Correlação numérica
+num_vars <- df_train %>% 
+  select(fuel_burn, flown_distance_enr, flight_duration, kpi_inefficiency_enr, avg_speed)
+GGally::ggcorr(num_vars, label = TRUE)
+```
