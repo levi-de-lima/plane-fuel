@@ -42,18 +42,20 @@ df_train <- data_train %>%
       flown_distance_enr < 800 ~ "Médio",
       TRUE ~ "Longo"
     ),
+    flight_range = factor(flight_range, levels = c('Curto', 'Médio', 'Longo')),
     dep_hour = hour(dep_time),
     dep_period = case_when(
       dep_hour >= 5 & dep_hour < 12 ~ "Manhã",
       dep_hour >= 12 & dep_hour < 18 ~ "Tarde",
       TRUE ~ "Noite"
-    )
+    ),
+    dep_period = factor(dep_period, levels = c("Manhã", "Tarde", "Noite"))
   )
 ```
 
 ```{r}
 # Aplicar o mesmo processo à base de teste (sem fuel_burn)
-df_test <- df_test %>%
+df_test <- data_test %>%
   mutate(
     avg_speed = flown_distance_enr / (flight_duration / 60),
     total_ineff = kpi_inefficiency_dep + kpi_inefficiency_arr,
@@ -62,23 +64,38 @@ df_test <- df_test %>%
       flown_distance_enr < 800 ~ "Médio",
       TRUE ~ "Longo"
     ),
+    flight_range = factor(flight_range, levels = c('Curto', 'Médio', 'Longo')),
     dep_hour = hour(dep_time),
     dep_period = case_when(
       dep_hour >= 5 & dep_hour < 12 ~ "Manhã",
       dep_hour >= 12 & dep_hour < 18 ~ "Tarde",
       TRUE ~ "Noite"
-    )
+    ),
+    dep_period = factor(dep_period, levels = c("Manhã", "Tarde", "Noite"))
   )
 ```
 
 ## Análise Exploratória dos Dados
 
 ```{r}
+hist(df_train$flight_duration, col='steelblue', breaks=20, xlab='Flight Duration (min)',main='Flight Duration Distribution')
+```
+
+```{r}
+hist(df_train$dep_hour, col='steelblue', breaks = 24, xlab='Departure Hour',main='Departure Time Distribution')
+```
+
+```{r}
+hist(df_train$flown_distance_enr, col='steelblue', breaks = 20, xlab='En Route Distance (nm)',main='Flown Distance En Route Distribution')
+```
+
+```{r}
 # Distribuição do consumo
-ggplot(data_train, aes(x = fuel_burn)) + 
-  geom_histogram(bins = 40, fill = "steelblue", color = "white") +
-  theme_minimal() +
-  labs(title = "Distribuição do Consumo de Combustível (kg)")
+hist(df_train$fuel_burn, col='steelblue', breaks=40, xlab='Time flown',main='Fuel Burn Distribution')
+```
+
+```{r}
+boxplot(fuel_burn ~ aircraft_type, df_train, col='steelblue')
 ```
 
 ```{r}
