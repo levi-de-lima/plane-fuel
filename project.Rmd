@@ -1,9 +1,19 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Análise do Consumo de Combustível - Aerometrics"
+author: "Levi Gurgel de Lima, Yves Gabriel Queiroz de Sousa e Marco Aurélio Costa Risardi"
+output:
+  html_document:
+    theme: flatly      # (Bootstrap elegante)
+    toc: true          # cria sumário lateral
+    toc_float: true    # deixa o menu fixo
+    number_sections: true
+    highlight: tango   # estilo das caixas de código
+    df_print: paged
 ---
 
-```{r setup}
+Este relatório apresenta o processo de preparação, exploração e modelagem dos dados históricos de voo utilizados pela **Aerometrics** para prever o consumo de combustível em operações aéreas. O objetivo é desenvolver modelos preditivos capazes de auxiliar companhias aéreas na tomada de decisões estratégicas, aumentando a eficiência e reduzindo custos operacionais.
+
+```{r setup,	message = FALSE,	warning = FALSE}
 # setwd("C:/Users/levid/OneDrive/Desktop/GitHub/plane-fuel")
 
 # Pacotes úteis
@@ -12,6 +22,7 @@ library(lubridate)
 library(e1071)
 library(neuralnet)
 library(caret)
+library(tree)
 
 # Defina o seed para reprodutibilidade
 set.seed(123)
@@ -26,7 +37,20 @@ load("data_project_test.Rda")
 summary(data_train)
 ```
 
-## Feature Engineering
+# Feature Engineering
+
+Nesta etapa realizamos a criação de novas variáveis derivadas das informações brutas do dataset.\
+A engenharia de atributos é fundamental para melhorar a representação dos dados e aumentar o poder preditivo dos modelos.
+
+As principais transformações incluem:
+
+-   **Velocidade média (avg_speed)**: estimada pela razão entre distância voada e tempo de voo.
+-   **Indicadores de eficiência**: métricas de consumo por milha náutica e por minuto.
+-   **Classificação do tipo de rota**: segmentação dos voos em *curto*, *médio* ou *longo alcance*.
+-   **Variáveis temporais**: extração da hora de partida e do período do dia (*manhã*, *tarde*, *noite*).
+-   **Índice total de ineficiência operacional**: combinação dos KPIs de decolagem e pouso.
+
+Esses atributos aprimoram a capacidade dos modelos em capturar padrões relevantes associados ao consumo de combustível.
 
 ```{r}
 df_train <- data_train %>%
@@ -73,28 +97,46 @@ df_test <- data_test %>%
   )
 ```
 
-## Análise Exploratória dos Dados
+# Análise Exploratória dos Dados
 
-```{r}
+A análise exploratória visa compreender o comportamento das variáveis do conjunto de treinamento e identificar padrões importantes relacionados ao consumo de combustível.
+
+Nesta etapa, avaliamos:
+
+-   A distribuição do **tempo de voo** e sua relação com as operações.
+-   O comportamento da variável **hora de partida**, essencial para identificar efeitos diurnos e operacionais.
+-   A distribuição da **distância voada**, que geralmente tem grande impacto no consumo.
+-   A variabilidade do **fuel_burn**, analisada tanto por histogramas quanto por agrupamentos por tipo de aeronave.
+
+Essas visualizações oferecem uma visão geral da dispersão, não linearidades e possíveis outliers presentes nos dados.
+
+```{r echo=FALSE}
 hist(df_train$flight_duration, col='steelblue', breaks=20, xlab='Flight Duration (min)',main='Flight Duration Distribution')
 ```
 
-```{r}
+```{r, echo=FALSE}
 hist(df_train$dep_hour, col='steelblue', breaks = 24, xlab='Departure Hour',main='Departure Time Distribution')
 ```
 
-```{r}
+```{r, echo=FALSE}
 hist(df_train$flown_distance_enr, col='steelblue', breaks = 20, xlab='En Route Distance (nm)',main='Flown Distance En Route Distribution')
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Distribuição do consumo
 hist(df_train$fuel_burn, col='steelblue', breaks=40, xlab='Time flown',main='Fuel Burn Distribution')
 ```
 
-```{r}
+```{r, echo=FALSE}
 boxplot(fuel_burn ~ aircraft_type, df_train, col='steelblue')
 ```
+
+# Modelo de Rede Neural
+
+A Aerometrics utilizou uma rede neural simples com função de ativação *tanh* para prever consumo de combustível em escala logaritimizada.\
+Os componentes principais obtidos pelo PCA serviram como entrada para o modelo, reduzindo complexidade e melhorando estabilidade.
+
+O desempenho foi avaliado via RMSE relativo, permitindo interpretar a precisão em termos percentuais.
 
 ```{r}
 # PCA
@@ -130,25 +172,133 @@ plot(nn_model)
 ```{r}
 pred <- compute(nn_model, data_train_pc[, 1:3])$net.result
 y_true <- data_train$fuel_burn
-y_pred <- expm1(pred * sd(log1p(y_true)) + mean(log1p(y_true)))
+y_pred_nn <- expm1(pred * sd(log1p(y_true)) + mean(log1p(y_true)))
 
-RMSE <- sqrt(mean((y_pred - y_true)^2))
+RMSE <- mean(abs(y_pred_nn - y_true)/y_true)
 cat("RMSE =", RMSE)
 ```
 
+# Modelo de Árvore de Decisão
+
+Também treinamos um modelo baseado em árvore de decisão, que permite interpretar a influência das variáveis de forma mais direta e intuitiva.\
+Esse método é útil para capturar relações não lineares e interações entre atributos operacionais.
+
+A validação cruzada foi utilizada para auxiliar na escolha de profundidades mais adequadas da árvore.
+
 ```{r}
-pred <- compute(nn_model, data_train_pc[, 1:3])$net.result
+tree_model <- tree(fuel_burn ~ airline + aircraft_type + flown_distance_enr +
+                     flight_duration + total_ineff + flight_range + dep_hour,
+                   df_train,
+                   mindev=0.001)
+
+plot(tree_model)
+# text(tree_model)
+```
+
+```{r}
+summary(tree_model)
+```
+
+```{r}
+y_pred_dt <- predict(tree_model, df_train)
+
 y_true <- data_train$fuel_burn
-y_pred <- expm1(pred * sd(log1p(y_true)) + mean(log1p(y_true)))
-
-RMSE <- mean(abs(y_pred - y_true)/y_true)
-cat("RMSE =", RMSE)
+RMSE <- mean(abs(y_pred_dt - y_true)/y_true)
+print(RMSE)
 ```
 
 ```{r}
-# Converte o resultado da previsão em vetor numérico
-y_pred <- as.numeric(predict(nn_model, data_test))
+set.seed(1)
+cv_results <- cv.tree(tree_model, FUN=prune.tree, K=10)
 
-# Substitui apenas os NAs por esses valores
-data_test$fuel_burn <- y_pred
+plot(cv_results$size, cv_results$dev, ylab='Deviance', xlab='Size', type='b')
+```
+
+```{r}
+data_train$prediction_nn <- as.numeric(y_pred_nn)
+data_train$prediction_dt <- y_pred_dt
+```
+
+# Ensemble: Combinação dos Modelos
+
+Com o objetivo de melhorar a capacidade preditiva final, foi criado um modelo *ensemble* linear combinando:
+
+-   as previsões da **rede neural**, e\
+-   as previsões da **árvore de decisão**.
+
+Os pesos foram estimados por regressão linear, permitindo que o ensemble aprenda automaticamente qual modelo tem maior poder explicativo em diferentes regiões do espaço de dados.
+
+Esse método geralmente proporciona maior robustez e menor variância preditiva.
+
+```{r}
+df_ensemble <- data.frame(
+  fuel_burn = data_train$fuel_burn,
+  nn = data_train$prediction_nn,
+  dt = data_train$prediction_dt
+)
+```
+
+```{r}
+model_ensemble <- lm(fuel_burn ~ nn + dt, data = df_ensemble)
+summary(model_ensemble)
+```
+
+```{r}
+coef(model_ensemble)
+```
+
+```{r}
+data_train$prediction_ensemble <- predict(model_ensemble, df_ensemble)
+
+rmse <- mean(abs(data_train$fuel_burn - data_train$prediction_ensemble)/data_train$fuel_burn)
+print(rmse)
+```
+
+# Previsão Final no Conjunto de Teste
+
+Após treinar e calibrar os modelos no conjunto de treinamento, aplicamos o pipeline completo ao conjunto de teste:
+
+1.  Aplicação do mesmo *feature engineering* utilizado no treino.\
+2.  Projeção dos dados no espaço do PCA.\
+3.  Predição individual pelos modelos (NN e DT).\
+4.  Combinação final pelo ensemble.
+
+O resultado é uma estimativa consistente e otimizada do consumo de combustível, pronta para ser utilizada pelos sistemas internos da Aerometrics.
+
+```{r}
+# Média e desvio padrão usados no treino (salvos quando você normalizou o y)
+mean_train <- mean(log1p(data_train$fuel_burn), na.rm = TRUE)
+sd_train   <- sd(log1p(data_train$fuel_burn), na.rm = TRUE)
+
+# Usa o mesmo PCA treinado no data_train
+x_test <- subset(data_test, select = c(8:12))
+data_test_pc <- predict(pca_out, newdata = x_test) |> as.data.frame()
+
+# Se o modelo neural espera um campo fuel_burn (mesmo que não use na previsão)
+data_test_pc$fuel_burn <- (log1p(data_test$fuel_burn) - mean_train) / sd_train
+
+# Rede neural (em escala padronizada)
+y_test_scaled <- as.numeric(predict(nn_model, data_test_pc))
+
+# Reverter escala (desfaz o log1p e a normalização do treino)
+y_pred_nn <- as.numeric(expm1(y_test_scaled * sd_train + mean_train))
+
+# Árvore de decisão
+y_pred_dt <- predict(tree_model, df_test)
+
+# Pegar os coeficientes do ensemble treinado no data_train
+w <- coef(model_ensemble)
+
+# Calcular previsão final ponderada
+prediction_nn <- y_pred_nn
+prediction_dt <- y_pred_dt
+
+data_test$fuel_burn <- w["nn"] * prediction_nn +
+                                 w["dt"] * prediction_dt
+```
+
+Por fim, salvamos o arquivo final contendo as previsões de combustível processadas pelo ensemble Aerometrics.
+
+```{r}
+save(data_test, file = "data_project_test_aerometrics.Rda")
 ```
