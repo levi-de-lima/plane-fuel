@@ -1,102 +1,74 @@
-# Projeto B2 - Previsão do Consumo de Combustível de Aeronaves ✈️  
+# Projeto B2 - Previsão do Consumo de Combustível de Aeronaves - Aerometrics ✈️
 
-## 📘 Descrição Geral  
-Este projeto foi desenvolvido como parte da disciplina **TRA-48 – Inteligência Analítica: Dados, Modelos e Decisões** do **Instituto Tecnológico de Aeronáutica (ITA)**.  
-O objetivo é aplicar métodos de **aprendizado de máquina supervisionado** para construir um **modelo preditivo de consumo de combustível (`fuel_burn`)** de aeronaves, com base em dados operacionais de voos sobre o espaço aéreo brasileiro em 2023.  
+## 📘 Descrição Geral
+Este projeto foi desenvolvido como parte da disciplina **TRA 48 - Inteligência Analítica: Dados, Modelos e Decisões** do **Instituto Tecnológico de Aeronáutica (ITA)**.
 
-O desafio consiste em treinar o modelo com o conjunto de dados `data_project_train.Rda` e prever o consumo de combustível para os voos do conjunto `data_project_test.Rda`.  
-As previsões são avaliadas pela métrica **RMSE (Root Mean Square Error)** — o grupo com o menor RMSE vence o desafio.
+O objetivo é aplicar métodos de **aprendizado de máquina supervisionado** para construir um **modelo preditivo de consumo de combustível (`fuel_burn`)** de aeronaves, com base em dados operacionais de voos simulados pela empresa **Aerometrics**.
 
----
+O desafio consiste em treinar e combinar modelos no conjunto de dados `data_project_train.Rda` para prever o consumo de combustível para os voos do conjunto `data_project_test.Rda`.
 
-## 📂 Estrutura do Projeto  
-├── data_project_train.Rda # Base de treinamento (7.279 voos)  
-├── data_project_test.Rda # Base de teste (2.427 voos)  
-├── data_project_test_groupname.Rda # Arquivo de submissão com previsões do grupo  
-├── Projeto_B2_script.R # Script principal em R  
-└── README.md # Este arquivo  
-
+As previsões são avaliadas pela métrica **RMSE Relativo (Relative Root Mean Square Error)**, visando a otimização da precisão percentual.
 
 ---
 
-## ⚙️ Etapas do Desenvolvimento  
-
-### 1. Entendimento do Problema  
-O consumo de combustível depende de diversos fatores operacionais e de eficiência da rota. O modelo visa capturar essas relações a partir das variáveis fornecidas.
-
-### 2. Pré-processamento  
-- Remoção de registros com `fuel_burn` ausente (apenas na base de treino).  
-- Conversão de datas para o formato `POSIXct`.  
-- Padronização e verificação de tipos de variáveis.  
-
-### 3. Criação de Novas Features  
-Foram criadas variáveis derivadas para melhorar a capacidade preditiva do modelo:
-- `avg_speed` – velocidade média (NM/h)  
-- `fuel_per_nm` e `fuel_per_min` – consumo relativo  
-- `total_ineff` – soma das ineficiências de decolagem e chegada  
-- `flight_range` – classificação de voos curtos, médios ou longos  
-- `dep_period` – período do dia (manhã, tarde ou noite)  
-
-### 4. Análise Exploratória (EDA)  
-Foram realizadas análises gráficas e estatísticas, incluindo:
-- Distribuição de `fuel_burn`  
-- Relação entre distância voada e consumo  
-- Comparação por tipo de aeronave e companhia aérea  
-- Correlação entre variáveis numéricas  
-
-### 5. Modelagem  
-Foram testados e comparados dois métodos de aprendizado supervisionado:
-1. **Regressão Linear Múltipla** – modelo baseline para referência.  
-2. **Random Forest** – modelo final selecionado por melhor desempenho preditivo (menor RMSE).  
-
-Modelos adicionais (ex.: XGBoost, Lasso, Elastic Net) podem ser facilmente integrados para comparação.
-
-### 6. Avaliação  
-As métricas utilizadas foram:
-- **RMSE** – erro quadrático médio da raiz  
-- **MAE** – erro absoluto médio  
-- **MAPE** – erro percentual absoluto médio  
-
-Também foram analisados:
-- Histogramas de resíduos  
-- Gráficos de `predito vs observado`  
-- Importância das variáveis (feature importance)  
-
-### 7. Previsões e Submissão  
-O modelo final foi aplicado à base `data_project_test.Rda` para gerar as previsões de `fuel_burn`.  
-O resultado foi salvo como `data_project_test_groupname.Rda` para submissão oficial.
+## 📂 Estrutura do Projeto
+├── data_project_train.Rda # Base de treinamento (dados históricos)
+├── data_project_test.Rda # Base de teste (a ser prevista)
+├── **data_project_test_aerometrics.Rda** # Arquivo final de submissão com previsões
+├── **project.Rmd** # Notebook R Markdown com pipeline completo (EDA, Modelagem, Ensemble)
+├── **presentation.Rmd** # Apresentação de slides da disciplina
+└── README.md # Este arquivo
 
 ---
 
-## 🧰 Principais Bibliotecas Utilizadas  
-- `tidyverse` – manipulação e visualização de dados  
-- `lubridate` – tratamento de datas e horários  
-- `caret` – particionamento e avaliação de modelos  
-- `randomForest` – modelo de árvores de decisão  
-- `xgboost` – modelo de boosting (opcional)  
-- `GGally` – correlação e EDA gráfica  
-- `vip` – importância de variáveis  
+## ⚙️ Pipeline de Desenvolvimento
+
+### 1. Pré-processamento e Feature Engineering
+Foram criadas **variáveis derivadas** cruciais para capturar a eficiência e a característica do voo:
+
+* `avg_speed` – Velocidade média (NM/h).
+* `total_ineff` – Índice total de ineficiência operacional (Decolagem + Pouso).
+* `flight_range` – Classificação categórica da rota (`Curto`, `Médio`, `Longo`).
+* `dep_period` – Período do dia (`Manhã`, `Tarde`, `Noite`).
+
+### 2. Análise Exploratória (EDA)
+Análise visual da distribuição das variáveis chave:
+* **`flight_duration`** (tempo de voo) e **`flown_distance_enr`** (distância).
+* **`dep_hour`** (hora de partida) para identificar padrões operacionais.
+* Distribuição de **`fuel_burn`** e sua dispersão por **`aircraft_type`**.
+
+### 3. Modelagem e Ensemble 🧠🌳
+Foram treinados e combinados dois modelos de aprendizado de máquina para aproveitar seus pontos fortes:
+
+1.  **Rede Neural (NN):** Utilizada com as **três primeiras componentes principais (PCA)** das variáveis de ineficiência, para estabilidade e redução de dimensionalidade.
+2.  **Árvore de Decisão (DT):** Utilizada por sua capacidade de capturar relações não lineares e interações entre variáveis operacionais e categóricas.
+3.  **Ensemble Linear:** As previsões do NN e do DT foram combinadas em um modelo de regressão linear simples (`lm(fuel_burn ~ nn + dt)`), permitindo que o modelo aprenda o peso ótimo de cada previsão.
+
+### 4. Avaliação e Submissão
+* **Métrica:** RMSE Relativo (Relative RMSE) no conjunto de treinamento.
+* **Previsão Final:** O modelo *Ensemble* foi aplicado à base de teste, e as previsões foram salvas no arquivo `data_project_test_aerometrics.Rda`.
 
 ---
 
-## 📊 Insights Obtidos  
-- A variável **`flown_distance_enr`** (distância voada) é o principal fator explicativo do consumo.  
-- Aeronaves **A321** e **B738** têm maior consumo absoluto, mas menor consumo relativo (kg/NM).  
-- Voos curtos (< 400 NM) são menos eficientes, devido à maior proporção de tempo em subida/descida.  
-- Ineficiências de rota (`kpi_inefficiency_enr`) têm correlação positiva com o consumo.  
+## 🧰 Principais Bibliotecas Utilizadas
+* `tidyverse` – Manipulação de dados e **Feature Engineering**.
+* `lubridate` – Tratamento de datas e extração de variáveis temporais.
+* `e1071` e `neuralnet` – Modelagem de **Rede Neural** (NN).
+* `tree` e `caret` – Modelagem de **Árvore de Decisão** (DT) e validação.
 
 ---
 
-## 🧩 Próximos Passos  
-- Refinar o *feature engineering* com variáveis meteorológicas e de tráfego.  
-- Aplicar *tuning* de hiperparâmetros via `caret::train()` ou `tidymodels`.  
-- Testar modelos de boosting (LightGBM, CatBoost).  
-- Automatizar a geração de relatórios via `RMarkdown`.  
+## 📊 Insights Chave do Modelo Ensemble
+* O **Ensemble** obteve o menor RMSE relativo no conjunto de treinamento.
+* O uso do **PCA** na Rede Neural melhorou o desempenho ao focar nas dimensões mais explicativas das ineficiências.
+* A inclusão de variáveis de **Feature Engineering** (e.g., `flight_range`, `total_ineff`) foi essencial para capturar variações no consumo que as variáveis brutas não conseguiam explicar sozinhas.
 
 ---
 
-## 👥 Autores  
-Projeto desenvolvido por **[Nome do Grupo / Integrantes]**,  
-para o curso **TRA-48 – Inteligência Analítica: Dados, Modelos e Decisões (ITA, 2025)**.  
+## 👥 Autores
+Projeto desenvolvido por:
+* Levi Gurgel de Lima
+* Yves Gabriel Queiroz de Sousa
+* Marco Aurélio Costa Risardi
 
----
+para o curso **TRA-48 – Inteligência Analítica: Dados, Modelos e Decisões (ITA, 2025)**.
