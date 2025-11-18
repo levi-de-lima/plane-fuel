@@ -65,6 +65,15 @@ Foram treinados e combinados dois modelos de aprendizado de máquina para aprove
 
 ---
 
+🔗 Publicação e Visualização Online
+O relatório completo (output HTML do R Markdown) contendo a Análise Exploratória, os detalhes da Modelagem (Rede Neural e Árvore de Decisão) e o Ensemble, foi publicado para fácil visualização na plataforma Rpubs.
+
+Você pode acessar o projeto final e todos os gráficos interativos através do link abaixo:
+
+➡️ [Acessar Relatório Completo no RPubs](https://rpubs.com/levi-de-lima/plane-fuel)
+
+---
+
 ## 👥 Autores
 Projeto desenvolvido por:
 * Levi Gurgel de Lima
