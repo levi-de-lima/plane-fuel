@@ -1,4 +1,4 @@
-# Projeto B2 - Previsão do Consumo de Combustível de Aeronaves - Aerometrics ✈️
+# Previsão do Consumo de Combustível de Aeronaves - Aerometrics ✈️
 
 ## 📘 Descrição Geral
 Este projeto foi desenvolvido como parte da disciplina **TRA 48 - Inteligência Analítica: Dados, Modelos e Decisões** do **Instituto Tecnológico de Aeronáutica (ITA)**.
