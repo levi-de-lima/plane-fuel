@@ -12,11 +12,11 @@ As previsões são avaliadas pela métrica **RMSE Relativo (Relative Root Mean S
 ---
 
 ## 📂 Estrutura do Projeto
-├── data_project_train.Rda # Base de treinamento (dados históricos)
-├── data_project_test.Rda # Base de teste (a ser prevista)
-├── **data_project_test_aerometrics.Rda** # Arquivo final de submissão com previsões
-├── **project.Rmd** # Notebook R Markdown com pipeline completo (EDA, Modelagem, Ensemble)
-├── **presentation.Rmd** # Apresentação de slides da disciplina
+├── data_project_train.Rda # Base de treinamento (dados históricos) <br>
+├── data_project_test.Rda # Base de teste (a ser prevista) <br>
+├── **data_project_test_aerometrics.Rda** # Arquivo final de submissão com previsões <br>
+├── **project.Rmd** # Notebook R Markdown com pipeline completo (EDA, Modelagem, Ensemble) <br>
+├── **presentation.Rmd** # Apresentação de slides da disciplina <br>
 └── README.md # Este arquivo
 
 ---
